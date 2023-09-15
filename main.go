@@ -28,6 +28,17 @@ func loggingMiddleware(next http.Handler) http.Handler {
 	})
 }
 
+func authMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Do stuff here
+		logz.Info("USER AUTH: ", r.RequestURI)
+		// Call the next handler, which can be another middleware in the chain, or the final handler.
+		// next.ServeHTTP(w, r)
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	})
+}
+
 func init() {
 	logz.VerbosMode()
 
@@ -37,10 +48,14 @@ func init() {
 func main() {
 	r := mux.NewRouter()
 	r.HandleFunc("/", HomeHandler)
+	r.HandleFunc("", HomeHandler)
+	// adding a site wide middleware
+	r.Use(loggingMiddleware)
 
+	// adding a route speciific middleware
 	auth := r.PathPrefix("/auth").Subrouter()
 	auth.HandleFunc("", AuthRoutes)
-	auth.Use(loggingMiddleware)
+	auth.Use(authMiddleware)
 
 	port, exists := os.LookupEnv("PORT")
 	if !exists {
